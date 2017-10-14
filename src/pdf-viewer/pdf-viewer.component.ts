@@ -2,7 +2,7 @@
  * Created by vadimdez on 21/06/16.
  */
 import {
-  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit
+  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, ChangeDetectionStrategy
 } from '@angular/core';
 import * as pdfjs from 'pdfjs-dist/build/pdf';
 window['pdfjs-dist/build/pdf'] = pdfjs;
@@ -12,6 +12,7 @@ import 'pdfjs-dist/web/pdf_viewer';
 PDFJS.verbosity = (<any>PDFJS).VERBOSITY_LEVELS.errors;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pdf-viewer',
   template: `<div class="ng2-pdf-viewer-container" (window:resize)="onPageResize()"><div class="pdfViewer"></div></div>`,
   styles: [
