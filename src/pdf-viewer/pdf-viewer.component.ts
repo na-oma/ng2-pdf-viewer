@@ -2,7 +2,7 @@
  * Created by vadimdez on 21/06/16.
  */
 import {
-  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, ChangeDetectionStrategy
+  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, ChangeDetectionStrategy, NgZone, ChangeDetectorRef
 } from '@angular/core';
 import * as pdfjs from 'pdfjs-dist/build/pdf';
 window['pdfjs-dist/build/pdf'] = pdfjs;
@@ -14,7 +14,7 @@ PDFJS.verbosity = (<any>PDFJS).VERBOSITY_LEVELS.errors;
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pdf-viewer',
-  template: `<div class="ng2-pdf-viewer-container" (window:resize)="onPageResize()"><div class="pdfViewer"></div></div>`,
+  template: `<div class="ng2-pdf-viewer-container"><div class="pdfViewer"></div></div>`,
   styles: [
 `
 .ng2-pdf-viewer-container {
@@ -288,7 +288,7 @@ export class PdfViewerComponent implements OnChanges, OnInit {
   @Output('error') onError = new EventEmitter<any>();
   @Output('on-progress') onProgress = new EventEmitter<PDFProgressData>();
 
-  constructor(private element: ElementRef) {
+  constructor(private element: ElementRef, private zone: NgZone, private changeDetectorRef: ChangeDetectorRef) {
     PDFJS.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ (PDFJS as any).version }/pdf.worker.min.js`;
   }
 
@@ -302,19 +302,21 @@ export class PdfViewerComponent implements OnChanges, OnInit {
     }
 
     this.resizeTimeout = setTimeout(() => {
-      this.updateSize();
-    }, 100);
+      console.log('resizeTimeout');
+      this.updateSize(); }, 100);
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if ('src' in changes) {
-      this.loadPDF();
-    } else if (this._pdf) {
-      if ('renderText' in changes) {
-        this.setupViewer();
-      }
-      this.update();
-    }
+    this.zone.runOutsideAngular(() => {
+	    if ('src' in changes) {
+	      this.loadPDF();
+	    } else if (this._pdf) {
+	      if ('renderText' in changes) {
+		this.setupViewer();
+	      }
+	      this.update();
+	      }
+      });
   }
 
   @Input()
@@ -336,6 +338,8 @@ export class PdfViewerComponent implements OnChanges, OnInit {
 
   @Input('render-text')
   set renderText(renderText: boolean) {
+  console.log("set renderText");
+  console.log(renderText);
     this._renderText = renderText;
   }
 
@@ -488,11 +492,14 @@ export class PdfViewerComponent implements OnChanges, OnInit {
   }
 
   private render() {
-    if (this._showAll) {
-      this.renderMultiplePages();
-    } else {
-      this.renderPage(this._page);
-    }
+    this.zone.runOutsideAngular(() => {
+	    if (this._showAll) {
+	      this.renderMultiplePages();
+	    } else {
+	      this.renderPage(this._page);
+	    }
+    });
+    this.changeDetectorRef.markForCheck();
   }
 
   private renderMultiplePages() {
@@ -516,6 +523,7 @@ export class PdfViewerComponent implements OnChanges, OnInit {
   }
 
   private renderPage(pageNumber: number) {
+    console.log("THIS IS THE PRIVATE VERSION OF PDF VIEWER BY ME TEST TEST TEST");
     this._pdf.getPage(pageNumber).then( (page: PDFPageProxy) => {
       let viewport = page.getViewport(this._zoom, this._rotation);
       let container = this.element.nativeElement.querySelector('.pdfViewer');
@@ -527,6 +535,8 @@ export class PdfViewerComponent implements OnChanges, OnInit {
       PdfViewerComponent.removeAllChildNodes(container);
 
       (<any>PDFJS).disableTextLayer = !this._renderText;
+	      console.log("disable text layer");
+	      console.log((<any>PDFJS).disableTextLayer);
 
       PdfViewerComponent.setExternalLinkTarget(this._externalLinkTarget);
 
