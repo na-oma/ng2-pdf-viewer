@@ -1,7 +1,9 @@
 /// <reference types="pdf" />
-import { ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit } from '@angular/core';
+import { ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, NgZone, ChangeDetectorRef } from '@angular/core';
 export declare class PdfViewerComponent implements OnChanges, OnInit {
     private element;
+    private zone;
+    private changeDetectorRef;
     static CSS_UNITS: number;
     private _renderText;
     private _stickToPage;
@@ -21,7 +23,7 @@ export declare class PdfViewerComponent implements OnChanges, OnInit {
     afterLoadComplete: EventEmitter<PDFDocumentProxy>;
     onError: EventEmitter<any>;
     onProgress: EventEmitter<PDFProgressData>;
-    constructor(element: ElementRef);
+    constructor(element: ElementRef, zone: NgZone, changeDetectorRef: ChangeDetectorRef);
     ngOnInit(): void;
     onPageResize(): void;
     ngOnChanges(changes: SimpleChanges): void;
