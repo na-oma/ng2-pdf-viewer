@@ -2,7 +2,7 @@
  * Created by vadimdez on 21/06/16.
  */
 import {
-  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, HostListener
+  Component, Input, Output, ElementRef, EventEmitter, OnChanges, SimpleChanges, OnInit, HostListener, ChangeDetectionStrategy, NgZone, ChangeDetectorRef
 } from '@angular/core';
 
 function isSSR() {
@@ -20,6 +20,7 @@ if (!isSSR()) {
 
 @Component({
   selector: 'pdf-viewer',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<div class="ng2-pdf-viewer-container"><div class="pdfViewer"></div></div>`,
   styles: [
 `
@@ -295,7 +296,7 @@ export class PdfViewerComponent implements OnChanges, OnInit {
   @Output('error') onError = new EventEmitter<any>();
   @Output('on-progress') onProgress = new EventEmitter<PDFProgressData>();
 
-  constructor(private element: ElementRef) {
+  constructor(private element: ElementRef, private zone: NgZone, private changeDetectorRef: ChangeDetectorRef) {
     if (!isSSR()) {
       PDFJS.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${ (PDFJS as any).version }/pdf.worker.min.js`;
     }
@@ -327,14 +328,16 @@ export class PdfViewerComponent implements OnChanges, OnInit {
       return;
     }
 
-    if ('src' in changes) {
-      this.loadPDF();
-    } else if (this._pdf) {
-      if ('renderText' in changes) {
-        this.setupViewer();
-      }
-      this.update();
-    }
+    this.zone.runOutsideAngular(() => {
+      if ('src' in changes) {
+        this.loadPDF();
+      } else if (this._pdf) {
+        if ('renderText' in changes) {
+          this.setupViewer();
+        }
+        this.update();
+      }});
+    this.changeDetectorRef.markForCheck();
   }
 
   @Input()
@@ -523,11 +526,13 @@ export class PdfViewerComponent implements OnChanges, OnInit {
   }
 
   private render() {
-    if (this._showAll) {
-      this.renderMultiplePages();
-    } else {
-      this.renderPage(this._page);
-    }
+    this.zone.runOutsideAngular(() => {
+      if (this._showAll) {
+        this.renderMultiplePages();
+      } else {
+        this.renderPage(this._page);
+    }});
+    this.changeDetectorRef.markForCheck();
   }
 
   private renderMultiplePages() {
